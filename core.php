@@ -487,28 +487,37 @@
 
 		global $output, $core, $buffer;
 		
-		$time = date('g:i:s');	
+		$time = date('g:i:s');
+
 		$buffer = $output['all'];
-	//	echo $buffer;
 		$buffer = explode(" ", $buffer, 4);
+
 		$buffer['username'] = substr($buffer[0], 1, strpos($buffer['0'], "!")-1);
-
-
-		$posExcl = strpos($buffer[0], "!");
-		$posAt = strpos($buffer[0], "@");
-		$buffer['identd'] = substr($buffer[0], $posExcl+1, $posAt-$posExcl-1); 
+		$buffer['identd'] = substr($buffer[0], strpos($buffer[0], "!"+1, strpos($buffer[0], "@")-strpos($buffer[0], "!"-1))); 
 		$buffer['hostname'] = substr($buffer[0], strpos($buffer[0], "@")+1);
 		$buffer['user_host'] = substr($buffer[0],1);
 		$buffer['action'] = $buffer[1];
+		$buffer['channel'] = substr($buffer[2], strpos($buffer[2], ":")+1, strpos($buffer[2], "\n")-2);
+
 		if ($buffer[0] == "PING") { $buffer['action'] = "PING"; }
+//		var_dump($buffer);
 		
 		switch (strtoupper($buffer['action']))
 		{
 			case "JOIN":
 			   	$buffer['text'] = "*JOINS: ". $buffer['username']." ( ".$buffer['user_host']." )";
 				$buffer['command'] = "JOIN";
-				$buffer['channel'] = $core['channel'];
 				$uname = strtolower($buffer['username']);
+
+				if ($buffer['username'] == $core['nick'])
+				{
+					$chan = str_replace("#", "", $buffer['channel']);
+					echo "\nChannel: ".$chan."\n";
+					#$core[$chan]['topic'] = substr($buffer[3], strpos($buffer[3], ":")+1, strpos($buffer[3], "\r\n", strpos($buffer[3], ":")+1)-2);
+					$core[$chan]['topic'] = str_replace(":", "", strstr(strstr($buffer[3], ":"), "\r\n", true));
+					echo "\n\nTopic Var: ".$core[$chan]['topic']."\n\n";
+				}
+
 				if (isset($core['user'][$uname]['tell']))
 				{
 					$x = count($core['user'][$uname]['tell']['msg']);
@@ -519,13 +528,12 @@
 					
 					//unset($core['user'][$uname]['tell']);
 				}
-				echo $time." Joins: ".$buffer['username']."\n";
+				echo $time." Joins (".$buffer['channel']."): ".$buffer['username']."\n";
 			   	break;
 
 			case "QUIT":
 			   	$buffer['text'] = "*QUITS: ". $buffer['username']." ( ".$buffer['user_host']." )";
 				$buffer['command'] = "QUIT";
-				$buffer['channel'] = $core['channel'];
 				echo $time." Quit: ".$buffer['username']."\n";
 			   	break;
 
@@ -547,21 +555,18 @@
 			case "PART":
 			  	$buffer['text'] = "*PARTS: ". $buffer['username']." (".$buffer['user_host'].")";
 				$buffer['command'] = "PART";
-				$buffer['channel'] = $core['channel'];
 				echo $time." Parts: ".$buffer['username']."\n";
 			  	break;
 
 			case "MODE":
 			  	$buffer['text'] = $buffer['username']." sets mode: ".$buffer[3];
 				$buffer['command'] = "MODE";
-				$buffer['channel'] = $buffer[2];
 				echo $time." ".$buffer['text']."\n";
 				break;
 
 			case "NICK":
 				$buffer['text'] = "*NICK: ".$buffer['username']." => ".substr($buffer[2], 1)." (".$buffer['user_host'].")";
 				$buffer['command'] = "NICK";
-				$buffer['channel'] = $core['channel'];
 
 				$uname = strtolower($buffer['username']);
 				if (isset($core['user'][$uname]['tell']))

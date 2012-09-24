@@ -20,10 +20,20 @@
 				$output['cmd'] = str_replace($core['prefix'], "", $output['command']);
 				$output['argument'] = trim_array($output['argument']); //get rid of that trailing space
 			}
-		}		
+		}
+
 		$data = $output['data'];
 		$cmd = $output['cmd']; // command without the prefix
-		
+
+		if ($data == "!!" && isset($core['lastdata']))
+		{
+			$data = $core['lastdata'];
+		}
+		else
+		{
+			$core['lastdata'] = $data;
+		}
+
 		switch($output['command'])
 		{
 			//admin command, sees if you're an admin
@@ -230,13 +240,13 @@
 				{
 					if ($newnick == $core['nick'])
 					{
-						$msg[] = "NICK :". $output['args'][1];
+						$msg[] = "NICK :".$data;
 						$msg[] = "PRIVMSG NickServ IDENTIFY ". $core['nspass'];
 					}
 					
 					else
 					{
-						$msg = "NICK :". $output['args'][1];
+						$msg = "NICK :".$data;
 					}
 				}
 
@@ -300,7 +310,14 @@
 
 							if (isset($todolist[$listcount]))
 							{
-								$msg = "Task #".$data." was removed.";
+								if (strlen($data) > 1)
+								{
+									$msg = "Tasks ".$data." was removed.";
+								}
+								else
+								{
+									$msg = "Task #".$data." was removed.";
+								}
 								unset($todolist[$listcount]);
 								$todo = implode("\n", $todolist);
 								$todo .= "\n";
